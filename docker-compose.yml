@@ -6,19 +6,6 @@ services:
       - "4222:4222"
       - "8222:8222"
 
-  orders-db:
-    image: postgres:16.2
-    container_name: orders_db
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: orders_db
-    ports:
-      - '5432:5432'
-    volumes:
-      - ./orders-ms/postgres:/var/lib/postgresql/data
-
   client-gateway:
     build: ./client-gateway
     ports:
@@ -55,6 +42,19 @@ services:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=postgresql://user:password@orders-db:5432/orders_db?schema=public
+
+  orders-db:
+    image: postgres:16.2
+    container_name: orders_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: orders_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./orders-ms/postgres:/var/lib/postgresql/data
 
   payments-ms:
     build: ./payments-ms
