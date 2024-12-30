@@ -6,15 +6,28 @@ services:
       - "4222:4222"
       - "8222:8222"
 
+  orders-db:
+    image: postgres:16.2
+    container_name: orders_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: orders_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./orders-ms/postgres:/var/lib/postgresql/data
+
   client-gateway:
     build: ./client-gateway
     ports:
-      - "${CLIENT_GATEWAY_PORT}:3000"
+      - "${CLIENT_GATEWAY_PORT}:${CLIENT_GATEWAY_PORT}"
     volumes:
       - ./client-gateway/src:/usr/src/app/src
     command: npm run start:dev
     environment:
-      - PORT=3000
+      - PORT=${CLIENT_GATEWAY_PORT}
       - NATS_SERVERS=nats://nats-server:4222
 
   products-ms:
@@ -43,15 +56,17 @@ services:
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=postgresql://user:password@orders-db:5432/orders_db?schema=public
 
-  orders-db:
-    image: postgres:16.2
-    container_name: orders_db
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: orders_db
+  payments-ms:
+    build: ./payments-ms
     ports:
-      - '5432:5432'
+      - "${PAYMENTS_PORT}:${PAYMENTS_PORT}"
     volumes:
-      - ./orders-ms/postgres:/var/lib/postgresql/data
+      - ./payments-ms/src:/usr/src/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=${PAYMENTS_PORT}
+      - NATS_SERVERS=nats://nats-server:4222
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - SUCCESS_URL=${SUCCESS_URL}
+      - CANCEL_URL=${CANCEL_URL}
