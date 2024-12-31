@@ -1,5 +1,18 @@
 services:
 
+  orders-db:
+    image: postgres:16.2
+    container_name: orders_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: orders_db
+    ports:
+      - '${ORDERS_DB_PORT}:${ORDERS_DB_PORT}'
+    volumes:
+      - ./orders-ms/postgres:/var/lib/postgresql/data
+
   nats-server:
     image: nats:latest
     ports:
@@ -20,12 +33,12 @@ services:
   products-ms:
     build: ./products-ms
     ports:
-      - "3001:3001"
+      - "${PRODUCTS_PORT}:${PRODUCTS_PORT}"
     volumes:
       - ./products-ms/src:/usr/src/app/src
     command: npm run start:dev
     environment:
-      - PORT=3001
+      - PORT=${PRODUCTS_PORT}
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=file:./dev.db
 
@@ -34,27 +47,14 @@ services:
       - orders-db
     build: ./orders-ms
     ports:
-      - "3002:3002"
+      - "${ORDERS_PORT}:${ORDERS_PORT}"
     volumes:
       - ./orders-ms/src:/usr/src/app/src
     command: npm run start:dev
     environment:
-      - PORT=3002
+      - PORT=${ORDERS_PORT}
       - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=postgresql://user:password@orders-db:5432/orders_db?schema=public
-
-  orders-db:
-    image: postgres:16.2
-    container_name: orders_db
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: orders_db
-    ports:
-      - '5432:5432'
-    volumes:
-      - ./orders-ms/postgres:/var/lib/postgresql/data
+      - DATABASE_URL=postgresql://user:password@orders-db:${ORDERS_DB_PORT}/orders_db?schema=public
 
   payments-ms:
     build: ./payments-ms
@@ -70,3 +70,14 @@ services:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
       - SUCCESS_URL=${SUCCESS_URL}
       - CANCEL_URL=${CANCEL_URL}
+
+  auth-ms:
+    build: ./auth-ms
+    ports:
+      - "${AUTH_PORT}:${AUTH_PORT}"
+    volumes:
+      - ./auth-ms/src:/usr/src/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=${AUTH_PORT}
+      - NATS_SERVERS=nats://nats-server:4222
